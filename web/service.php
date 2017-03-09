@@ -14,6 +14,7 @@ include 'config.php';
 // External scripts paths.
 $scripts_path = '../scripts/';
 $c_compiler_path = $scripts_path . 'compile.sh';
+$c_x86_compiler_path = $scripts_path . 'compile-x86.sh';
 $translate_script_path = $scripts_path . 'translate.sh';
 $get_wasm_jit_script_path = $scripts_path . 'get_wasm_jit.js';
 $run_wasm_script_path = $scripts_path . 'run.js';
@@ -60,12 +61,25 @@ if ((strpos($action, "cpp2") === 0) or (strpos($action, "c2") === 0)) {
   $available_options = array(
     '-O0', '-O1', '-O2', '-O3', '-O4', '-Os', '-fno-exceptions', '-fno-rtti',
     '-ffast-math', '-fno-inline', '-std=c99', '-std=c89', '-std=c++14',
-    '-std=c++1z', '-std=c11', '-std=c1x');
+    '-std=c++1z', '-std=c++11', '-std=c++98');
   $safe_options = '-fno-verbose-asm';
   foreach ($available_options as $o) {
     if (strpos($options, $o) !== false) {
       $safe_options .= ' ' . $o;
     }
+  }
+
+  if (strpos($action, "2x86")) {
+    $x86FileName = $result_file_base . '.x86';
+    $output = shell_exec($c_x86_compiler_path . ' ' .
+                         $fileName . ' "' . $safe_options . '"' . ' 2>&1');
+    if (!file_exists($x86FileName)) {
+      echo $sanitize_shell_output($output);
+    } else {
+      echo $sanitize_shell_output(file_get_contents($x86FileName));
+    }
+    $cleanup();
+    exit;
   }
 
   // Compiling C/C++ code to get WAST.
@@ -86,8 +100,6 @@ if ((strpos($action, "cpp2") === 0) or (strpos($action, "c2") === 0)) {
     } else {
       echo file_get_contents($wastFileName);
     }
-  } else if (strpos($action, "2x86")) {
-    echo $sanitize_shell_output(file_get_contents($result_file_base . '.x86'));
   } else if (strpos($action, "2run")) {
     echo $sanitize_shell_output(
       shell_exec($timeout_command . ' ' . $jsshell_path . ' ' .
