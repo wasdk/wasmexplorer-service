@@ -66,6 +66,9 @@ if ((strpos($action, "cpp2") === 0) or (strpos($action, "c2") === 0)) {
   foreach ($available_options as $o) {
     if (strpos($options, $o) !== false) {
       $safe_options .= ' ' . $o;
+    } else if ((strpos($o, '-std=') !== false) and
+               (strpos(strtolower($options), $o) !== false)) {
+      $safe_options .= ' ' . $o;
     }
   }
 
