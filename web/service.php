@@ -14,6 +14,7 @@ include 'config.php';
 // External scripts paths.
 $scripts_path = '../scripts/';
 $c_compiler_path = $scripts_path . 'compile.sh';
+$c_compiler_v2_path = $scripts_path . 'compile2.sh';
 $c_x86_compiler_path = $scripts_path . 'compile-x86.sh';
 $translate_script_path = $scripts_path . 'translate.sh';
 $get_wasm_jit_script_path = $scripts_path . 'get_wasm_jit.js';
@@ -26,7 +27,7 @@ $sanitize_shell_output = function ($s)
   use ($upload_folder_path, $jsshell_path, $llvm_root,
        $binaryen_root, $other_sensitive_paths) {
   $sensitive_strings = array_merge(array(
-    $upload_folder_path, $jsshell_path, $llvm_root, $binaryen_root, getcwd()),
+    $upload_folder_path, $jsshell_path, $llvm_root, $llvm_wasm_root, $binaryen_root, getcwd()),
     $other_sensitive_paths);
   $out = $s;
   foreach ($sensitive_strings as $i) {
@@ -37,6 +38,7 @@ $sanitize_shell_output = function ($s)
 
 $input = $_POST["input"];
 $action = $_POST["action"];
+$compiler_version = $_POST["version"];
 $options = isset($_POST["options"]) ? $_POST["options"] : '';
 
 // The temp file name is calculated based on MD5 of the input values.
@@ -86,7 +88,8 @@ if ((strpos($action, "cpp2") === 0) or (strpos($action, "c2") === 0)) {
   }
 
   // Compiling C/C++ code to get WAST.
-  $output = shell_exec($c_compiler_path . ' ' .
+  $selected_c_compiler_path = $compiler_version == "2" ? $c_compiler_v2_path : $c_compiler_path;
+  $output = shell_exec($selected_c_compiler_path . ' ' .
                        $fileName . ' "' . $safe_options . '"' . ' 2>&1');
   $wastFileName = $result_file_base . '.wast';
   if (!file_exists($wastFileName)) {

@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-  $service_version = '2.2';
+  $service_version = '3.0';
 
   $platform = PHP_OS == 'Linux' ? 'linux' :
               (PHP_OS == 'Darwin' ? 'mac' : 'unknown');
@@ -12,10 +12,12 @@
   $upload_folder_path = '/tmp/wasm-service-uploads/';
   $jsshell_path = $platform_dir . 'jsshell/js';
   $llvm_root = $platform_dir . 'llvm/bin';
+  $llvm_wasm_root = $platform_dir . 'llvm-wasm/bin';
   $binaryen_root = $platform_dir . 'binaryen/bin';
   $other_sensitive_paths = array();
 
   putenv("LLVM_ROOT=$llvm_root");
+  putenv("LLVM_WASM_ROOT=$llvm_wasm_root");
   putenv("BYNARYEN_ROOT=$binaryen_root");
   putenv("JSSHELL=$jsshell_path");
 

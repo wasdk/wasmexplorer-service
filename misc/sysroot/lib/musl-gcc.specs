@@ -1,0 +1,32 @@
+%rename cpp_options old_cpp_options
+
+*cpp_options:
+-nostdinc -isystem /Users/yury/llvmwasm/inception/sysroot/include -isystem include%s %(old_cpp_options)
+
+*cc1:
+%(cc1_cpu) -nostdinc -isystem /Users/yury/llvmwasm/inception/sysroot/include -isystem include%s
+
+*link_libgcc:
+-L/Users/yury/llvmwasm/inception/sysroot/lib -L .%s
+
+*libgcc:
+libgcc.a%s %:if-exists(libgcc_eh.a%s)
+
+*startfile:
+%{!shared: /Users/yury/llvmwasm/inception/sysroot/lib/%{pie:S}crt1.o} /Users/yury/llvmwasm/inception/sysroot/lib/crti.o %{shared|pie:crtbeginS.o%s;:crtbegin.o%s}
+
+*endfile:
+%{shared|pie:crtendS.o%s;:crtend.o%s} /Users/yury/llvmwasm/inception/sysroot/lib/crtn.o
+
+*link:
+-dynamic-linker /lib/ld-musl-wasm32.so.1 -nostdlib %{shared:-shared} %{static:-static} %{rdynamic:-export-dynamic}
+
+*esp_link:
+
+
+*esp_options:
+
+
+*esp_cpp_options:
+
+

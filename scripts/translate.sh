@@ -6,5 +6,10 @@
 wastfile=$1
 wasmfile=${wastfile%.*}.wasm
 
-# $BYNARYEN_ROOT/wasm-as "$wastfile" -o "$wasmfile"
-$JSSHELL -e "os.file.writeTypedArrayToFile('$wasmfile', wasmTextToBinary(read('$wastfile')));"
+grep "(call_indirect (type " t.wast
+if [ $? -eq 0 ]
+then
+  $BYNARYEN_ROOT/wasm-as "$wastfile" -o "$wasmfile"
+else
+  $JSSHELL -e "os.file.writeTypedArrayToFile('$wasmfile', wasmTextToBinary(read('$wastfile')));"
+fi

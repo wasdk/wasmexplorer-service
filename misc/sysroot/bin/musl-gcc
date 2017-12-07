@@ -1,0 +1,2 @@
+#!/bin/sh
+exec "${REALGCC:-gcc}" "$@" -specs "/Users/yury/llvmwasm/inception/sysroot/lib/musl-gcc.specs"
