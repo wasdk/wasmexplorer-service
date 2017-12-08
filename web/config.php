@@ -20,7 +20,7 @@
   putenv("JSSHELL=$jsshell_path");
 
   if ($platform == 'linux') {
-    putenv("LD_LIBRARY_PATH=${llvm_root}/../lib");
+    putenv("LD_LIBRARY_PATH=${llvm_root}/../lib:${platform_dir}jsshell");
   }
   if ($platform == 'mac') {
     putenv("DYLD_LIBRARY_PATH=${llvm_root}/../lib");
