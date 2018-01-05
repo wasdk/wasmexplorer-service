@@ -6,7 +6,7 @@
 wastfile=$1
 wasmfile=${wastfile%.*}.wasm
 
-grep "(call_indirect (type " t.wast
+grep "(call_indirect (type " $wastfile
 if [ $? -eq 0 ]
 then
   $BYNARYEN_ROOT/wasm-as "$wastfile" -o "$wasmfile"
