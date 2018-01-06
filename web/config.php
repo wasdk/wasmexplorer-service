@@ -6,9 +6,10 @@
 
   $service_version = '3.0';
 
+  $app_root_dir = realpath('..') . '/';
   $platform = PHP_OS == 'Linux' ? 'linux' :
               (PHP_OS == 'Darwin' ? 'mac' : 'unknown');
-  $platform_dir = '../' . $platform . '/';
+  $platform_dir = $app_root_dir . $platform . '/';
   $upload_folder_path = '/tmp/wasm-service-uploads/';
   $jsshell_path = $platform_dir . 'jsshell/js';
   $llvm_root = $platform_dir . 'llvm/bin';

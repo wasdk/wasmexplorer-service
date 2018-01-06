@@ -10,31 +10,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 include 'config.php';
+include 'sanitize_out.php';
+include 'build.php';
 
 // External scripts paths.
-$scripts_path = '../scripts/';
+$scripts_path = $app_root_dir . 'scripts/';
 $c_compiler_path = $scripts_path . 'compile.sh';
 $c_compiler_v2_path = $scripts_path . 'compile2.sh';
 $c_x86_compiler_path = $scripts_path . 'compile-x86.sh';
 $translate_script_path = $scripts_path . 'translate.sh';
+$disassemble_script_path = $scripts_path . 'disassemble.sh';
 $get_wasm_jit_script_path = $scripts_path . 'get_wasm_jit.js';
 $run_wasm_script_path = $scripts_path . 'run.js';
 $clean_wast_script_path = $scripts_path . 'clean_wast.js';
 $timeout_command = 'timeout 10s time';
-
-// Cleaning shell output from sensitive information.
-$sanitize_shell_output = function ($s)
-  use ($upload_folder_path, $jsshell_path, $llvm_root,
-       $binaryen_root, $other_sensitive_paths) {
-  $sensitive_strings = array_merge(array(
-    $upload_folder_path, $jsshell_path, $llvm_root, $llvm_wasm_root, $binaryen_root, getcwd()),
-    $other_sensitive_paths);
-  $out = $s;
-  foreach ($sensitive_strings as $i) {
-    $out = str_replace($i, "...", $out);
-  }
-  return $out;
-};
 
 $input = $_POST["input"];
 $action = $_POST["action"];
@@ -50,6 +39,11 @@ $cleanup = function () use ($result_file_base) {
     unlink($f);
   }
 };
+
+if ($action == 'build') {
+  build_project($input, $result_file_base);
+  exit;
+}
 
 if ((strpos($action, "cpp2") === 0) or (strpos($action, "c2") === 0)) {
   // The $action has the format (c|cpp)2(wast|x86|run).
@@ -110,6 +104,27 @@ if ((strpos($action, "cpp2") === 0) or (strpos($action, "c2") === 0)) {
     echo $sanitize_shell_output(
       shell_exec($timeout_command . ' ' . $jsshell_path . ' ' .
                  $run_wasm_script_path. ' ' . $wastFileName . ' 2>&1'));
+  }
+  $cleanup();
+  exit;
+}
+
+if ($action == "wasm2wast") {
+  $wastFileName = $result_file_base . '.wast';
+  $wasmFileName = $result_file_base . '.wasm';
+  file_put_contents($wasmFileName, base64_decode($input));
+  $output = shell_exec($disassemble_script_path . ' ' . $wasmFileName . ' 2>&1');
+  if (!file_exists($wastFileName)) {
+    echo $sanitize_shell_output($output);
+    $cleanup();
+    exit;
+  }
+  if (strpos($options, "--clean") !== false) {
+    echo $sanitize_shell_output(
+      shell_exec($jsshell_path . ' ' .
+                 $clean_wast_script_path . ' ' . $wastFileName));
+  } else {
+    echo file_get_contents($wastFileName);
   }
   $cleanup();
   exit;
