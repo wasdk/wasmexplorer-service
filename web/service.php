@@ -61,8 +61,9 @@ if ($action == 'build') {
   //     tasks: [
   //         {
   //             name: "Building file.cpp",
+  //             file: "file.cpp",
   //             success: true,
-  //             output: "",
+  //             console: ""
   //         }
   //     ]
   // }

@@ -42,7 +42,7 @@ function build_cpp_file($input, $options, $output, $result_obj) {
   global $llvm_wasm_root, $sanitize_shell_output;
   $cmd = $llvm_wasm_root . '/clang++ ' . get_clang_options($options) . ' ' . $input . ' -o ' . $output;
   $out = shell_exec($cmd . ' 2>&1');
-  $result_obj->{'output'} = $sanitize_shell_output($out);
+  $result_obj->{'console'} = $sanitize_shell_output($out);
   if (!file_exists($output)) {
     $result_obj->{'success'} = false;
     return false;
@@ -146,7 +146,8 @@ function build_project($json, $base) {
     $options = $file->{'options'};
     $success = true;
     $result_obj = (object) [
-      'name' => "building $name"
+      'name' => "building $name",
+      'file' => $name
     ];
     array_push($build_result->{'tasks'}, $result_obj);
     if ($type == 'c') {
