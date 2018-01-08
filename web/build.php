@@ -52,9 +52,12 @@ function build_cpp_file($input, $options, $output, $result_obj) {
 }
 
 function validate_filename($name) {
+  if (!preg_match("/^[0-9a-zA-Z\-_.]+(\/[0-9a-zA-Z\-_.]+)*$/", $name)) {
+    return false;
+  }
   $parts = preg_split("/\//", $name);
   foreach($parts as $p) {
-    if ($p == '' || $p == '.' || $p == '..') {
+    if ($p == '.' || $p == '..') {
       return false;
     }
   }
@@ -113,7 +116,7 @@ function build_project($json, $base) {
   $result = $base . '.wasm';
 
   if (!file_exists($dir)) {
-    mkdir($dir);
+    mkdir($dir, 0777);
   }
   chdir($dir);
 
@@ -126,6 +129,10 @@ function build_project($json, $base) {
       return $complete(false, 'Invalid filename ' . $name);
     }
     $fileName = $dir . '/' . $name;
+    $subdir = dirname($fileName);
+    if (!file_exists($subdir)) {
+      mkdir($subdir, 0777, true);
+    }
     $src = $file->{'src'};
     file_put_contents($fileName, $src);
   }
