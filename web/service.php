@@ -41,12 +41,39 @@ $cleanup = function () use ($result_file_base) {
 };
 
 if ($action == 'build') {
+  // Input: JSON in the following format
+  // {
+  //     output: "wasm",
+  //     files: [
+  //         {
+  //             type: "cpp",
+  //             name: "file.cpp",
+  //             options: "-O3 -std=c++98",
+  //             src: "puts(\"hi\")"
+  //         }
+  //     ]
+  // }
+  // Output: JSON in the following format
+  // {
+  //     success: true,
+  //     message: "Success",
+  //     output: "AGFzbQE.... =",
+  //     tasks: [
+  //         {
+  //             name: "Building file.cpp",
+  //             success: true,
+  //             output: "",
+  //         }
+  //     ]
+  // }
   build_project($input, $result_file_base);
   exit;
 }
 
 if ((strpos($action, "cpp2") === 0) or (strpos($action, "c2") === 0)) {
   // The $action has the format (c|cpp)2(wast|x86|run).
+  // The query string has format: action=c2...&input=puts("hi")&options=-O3+-std=89
+  // Output: wast or error message.
   $fileExt = '.cpp';
   if (strpos($action, "c2") === 0) {
     $fileExt = '.c';
@@ -110,6 +137,9 @@ if ((strpos($action, "cpp2") === 0) or (strpos($action, "c2") === 0)) {
 }
 
 if ($action == "wasm2wast") {
+  // Converts binary to text format (wasm2wast)
+  // The query string has format: action=wasm2wast&input=AGFzbQE...
+  // Output: wast or error message.
   $wastFileName = $result_file_base . '.wast';
   $wasmFileName = $result_file_base . '.wasm';
   file_put_contents($wasmFileName, base64_decode($input));
@@ -131,6 +161,19 @@ if ($action == "wasm2wast") {
 }
 
 if ($action == "wast2assembly") {
+  // The query string has format: action=wast2assembly&input=(module...)
+  // Output: JSON in the following format
+  // {
+  //      "regions":[
+  //           {
+  //               "name": "wasm-function[0]",
+  //               "entry": 0,
+  //               "index": 0,
+  //               "bytes": "SIPsCLg1AAAAZpBIg8QIww=="
+  //           }
+  //      ],
+  //      "wasm":"AGFzbQEAAAA...."
+  // }
   $fileName = $result_file_base . '.wast';
   $jit_options = '';
   if (strpos($options, '--wasm-always-baseline') !== false) {
@@ -145,6 +188,9 @@ if ($action == "wast2assembly") {
 }
 
 if ($action == "wast2wasm") {
+  // Converts binary to text format (wasm2wast)
+  // The query string has format: action=wast2wasw&input=(module...)
+  // Output: wasm base64 or error message.
   $fileName = $result_file_base . '.wast';
   file_put_contents($fileName, $input);
   $output = shell_exec($translate_script_path . ' ' . $fileName . ' 2>&1');
