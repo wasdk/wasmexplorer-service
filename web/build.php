@@ -25,25 +25,29 @@ function get_clang_options($options) {
   return $clang_flags . ' ' . $safe_options;
 }
 
-function build_c_file($input, $options, $output) {
+function build_c_file($input, $options, $output, $result_obj) {
   global $llvm_wasm_root, $sanitize_shell_output;
   $cmd = $llvm_wasm_root . '/clang ' . get_clang_options($options) . ' ' . $input . ' -o ' . $output;
   $out = shell_exec($cmd . ' 2>&1');
+  $result_obj->{'output'} = $sanitize_shell_output($out);
   if (!file_exists($output)) {
-    echo $sanitize_shell_output($out);
+    $result_obj->{'success'} = false;
     return false;
   }
+  $result_obj->{'success'} = true;
   return true;
 }
 
-function build_cpp_file($input, $options, $output) {
+function build_cpp_file($input, $options, $output, $result_obj) {
   global $llvm_wasm_root, $sanitize_shell_output;
   $cmd = $llvm_wasm_root . '/clang++ ' . get_clang_options($options) . ' ' . $input . ' -o ' . $output;
   $out = shell_exec($cmd . ' 2>&1');
+  $result_obj->{'output'} = $sanitize_shell_output($out);
   if (!file_exists($output)) {
-    echo $sanitize_shell_output($out);
+    $result_obj->{'success'} = false;
     return false;
   }
+  $result_obj->{'success'} = true;
   return true;
 }
 
@@ -57,7 +61,7 @@ function validate_filename($name) {
   return true;
 }
 
-function link_obj_files($obj_files, $options, $has_cpp, $output) {
+function link_obj_files($obj_files, $options, $has_cpp, $output, $result_obj) {
   global $app_root_dir, $llvm_wasm_root, $sanitize_shell_output;
   $sysroot = $app_root_dir . 'misc/sysroot';
   $clang_flags = "--target=wasm32-unknown-unknown-wasm --sysroot=$sysroot -nostartfiles $sysroot/lib/wasmception.wasm -D__WASM32__ -Wl,--allow-undefined -Wl,--strip-debug";
@@ -70,10 +74,12 @@ function link_obj_files($obj_files, $options, $has_cpp, $output) {
   }
   $cmd = $clang . ' ' . $clang_flags . ' ' . $files . ' -o ' . $output;
   $out = shell_exec($cmd . ' 2>&1');
+  $result_obj->{'output'} = $sanitize_shell_output($out);
   if (!file_exists($output)) {
-    echo $sanitize_shell_output($out);
+    $result_obj->{'success'} = false;
     return false;
   }
+  $result_obj->{'success'} = true;
   return true;
 }
 
@@ -82,36 +88,42 @@ function build_project($json, $base) {
   $output = $project->{'output'};
   file_put_contents($base . '.txt', $json);
 
-  if ($output != 'wasm') {
-    echo 'Invalid output type ' . $output;
-    return false;
-  }  
-
+  $build_result = (object) [ ];
   $old_dir = getcwd();
-  $dir = $base . '.$';
-  $result = $base . '.wasm';
 
-  $cleanup = function () use ($dir, $old_dir) {
+  $complete = function ($success, $message) use ($dir, $old_dir, $build_result) {
     exec(sprintf("rm -rf %s", escapeshellarg($dir)));
     if (file_exists($result)) {
       unlink($result);
     }
   
-    chdir($old_dir);  
+    chdir($old_dir);
+
+    $build_result->{'success'} = $success;
+    $build_result->{'message'} = $message;
+    echo json_encode($build_result);
+    return $success;
   };
+
+  if ($output != 'wasm') {
+    return $complete(false, 'Invalid output type ' . $output);
+  }
+
+  $dir = $base . '.$';
+  $result = $base . '.wasm';
 
   if (!file_exists($dir)) {
     mkdir($dir);
   }
   chdir($dir);
 
+  $build_result->{'tasks'} = array();
+
   $files = $project->{'files'};
   foreach ($files as $file) {
     $name = $file->{'name'};
     if (!validate_filename($name)) {
-      echo 'Invalid filename ' . $name;
-      $cleanup();
-      return false;
+      return $complete(false, 'Invalid filename ' . $name);
     }
     $fileName = $dir . '/' . $name;
     $src = $file->{'src'};
@@ -126,32 +138,34 @@ function build_project($json, $base) {
     $type = $file->{'type'};
     $options = $file->{'options'};
     $success = true;
+    $result_obj = (object) [
+      'name' => "building $name"
+    ];
+    array_push($build_result->{'tasks'}, $result_obj);
     if ($type == 'c') {
-      $success = build_c_file($fileName, $options, $fileName . '.o');
+      $success = build_c_file($fileName, $options, $fileName . '.o', $result_obj);
       array_push($obj_files, $fileName . '.o');
     } elseif ($type == 'cpp') {
       $clang_cpp = true;
-      $success = build_cpp_file($fileName, $options, $fileName . '.o');      
+      $success = build_cpp_file($fileName, $options, $fileName . '.o', $result_obj);
       array_push($obj_files, $fileName . '.o');
     }
 
     if (!$success) {
-      echo 'Error during build of ' . $name;
-      $cleanup();
-      return false;
+      return $complete(false, 'Error during build of ' . $name);
     }
   }
 
-  if (!link_obj_files($obj_files, '', $clang_cpp, $result)) {
-    echo 'Error during linking';
-    $cleanup();
-    return false;
+  $result_obj = (object) [
+    'name' => 'linking'
+  ];
+  array_push($build_result->{'tasks'}, $result_obj);
+  if (!link_obj_files($obj_files, '', $clang_cpp, $result, $result_obj)) {
+    return $complete(false, 'Error during linking');
   }
   
-  echo base64_encode(file_get_contents($result));
-
-  $cleanup();
-  return true;
+  $build_result->{'output'} = base64_encode(file_get_contents($result));
+  return $complete(true, 'Success');
 }
 
 ?>
