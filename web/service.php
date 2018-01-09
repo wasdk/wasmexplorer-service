@@ -51,7 +51,8 @@ if ($action == 'build') {
   //             options: "-O3 -std=c++98",
   //             src: "puts(\"hi\")"
   //         }
-  //     ]
+  //     ],
+  //     link_options: "--import-memory"
   // }
   // Output: JSON in the following format
   // {

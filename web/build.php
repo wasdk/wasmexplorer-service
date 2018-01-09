@@ -8,7 +8,11 @@ function get_clang_options($options) {
   global $app_root_dir;
   $sysroot = $app_root_dir . 'misc/sysroot';
   $clang_flags = "--target=wasm32-unknown-unknown-wasm --sysroot=$sysroot";
-  
+
+  if (is_null($options)) {
+    return $clang_flags;
+  }
+
   $available_options = array(
     '-O0', '-O1', '-O2', '-O3', '-O4', '-Os', '-fno-exceptions', '-fno-rtti',
     '-ffast-math', '-fno-inline', '-std=c99', '-std=c89', '-std=c++14',
@@ -23,6 +27,25 @@ function get_clang_options($options) {
     }
   }
   return $clang_flags . ' ' . $safe_options;
+}
+
+function get_lld_options($options) {
+  global $app_root_dir;
+  $sysroot = $app_root_dir . 'misc/sysroot';
+  $clang_flags = "--target=wasm32-unknown-unknown-wasm --sysroot=$sysroot -nostartfiles $sysroot/lib/wasmception.wasm -D__WASM32__ -Wl,--allow-undefined -Wl,--strip-debug";
+
+  if (is_null($options)) {
+    return $clang_flags;
+  }
+
+  $available_options = array('--import-memory');
+  $safe_options = '';
+  foreach ($available_options as $o) {
+    if (strpos($options, $o) !== false) {
+      $safe_options .= ' -Wl,' . $o;
+    }
+  }
+  return $clang_flags . $safe_options;
 }
 
 function build_c_file($input, $options, $output, $result_obj) {
@@ -65,9 +88,7 @@ function validate_filename($name) {
 }
 
 function link_obj_files($obj_files, $options, $has_cpp, $output, $result_obj) {
-  global $app_root_dir, $llvm_wasm_root, $sanitize_shell_output;
-  $sysroot = $app_root_dir . 'misc/sysroot';
-  $clang_flags = "--target=wasm32-unknown-unknown-wasm --sysroot=$sysroot -nostartfiles $sysroot/lib/wasmception.wasm -D__WASM32__ -Wl,--allow-undefined -Wl,--strip-debug";
+  global $llvm_wasm_root, $sanitize_shell_output;
   $files = join(' ', $obj_files);
 
   if ($has_cpp) {
@@ -75,7 +96,7 @@ function link_obj_files($obj_files, $options, $has_cpp, $output, $result_obj) {
   } else {
     $clang = $llvm_wasm_root . '/clang';    
   }
-  $cmd = $clang . ' ' . $clang_flags . ' ' . $files . ' -o ' . $output;
+  $cmd = $clang . ' ' . get_lld_options($options) . ' ' . $files . ' -o ' . $output;
   $out = shell_exec($cmd . ' 2>&1');
   $result_obj->{'output'} = $sanitize_shell_output($out);
   if (!file_exists($output)) {
@@ -164,11 +185,12 @@ function build_project($json, $base) {
     }
   }
 
+  $link_options = $project->{'link_options'};
   $result_obj = (object) [
     'name' => 'linking'
   ];
   array_push($build_result->{'tasks'}, $result_obj);
-  if (!link_obj_files($obj_files, '', $clang_cpp, $result, $result_obj)) {
+  if (!link_obj_files($obj_files, $link_options, $clang_cpp, $result, $result_obj)) {
     return $complete(false, 'Error during linking');
   }
   
