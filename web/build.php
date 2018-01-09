@@ -98,7 +98,7 @@ function link_obj_files($obj_files, $options, $has_cpp, $output, $result_obj) {
   }
   $cmd = $clang . ' ' . get_lld_options($options) . ' ' . $files . ' -o ' . $output;
   $out = shell_exec($cmd . ' 2>&1');
-  $result_obj->{'output'} = $sanitize_shell_output($out);
+  $result_obj->{'console'} = $sanitize_shell_output($out);
   if (!file_exists($output)) {
     $result_obj->{'success'} = false;
     return false;
@@ -187,7 +187,7 @@ function build_project($json, $base) {
 
   $link_options = $project->{'link_options'};
   $result_obj = (object) [
-    'name' => 'linking'
+    'name' => 'linking wasm'
   ];
   array_push($build_result->{'tasks'}, $result_obj);
   if (!link_obj_files($obj_files, $link_options, $clang_cpp, $result, $result_obj)) {

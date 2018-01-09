@@ -61,8 +61,13 @@ if ($action == 'build') {
   //     output: "AGFzbQE.... =",
   //     tasks: [
   //         {
-  //             name: "Building file.cpp",
+  //             name: "building file.cpp",
   //             file: "file.cpp",
+  //             success: true,
+  //             console: ""
+  //         },
+  //         {
+  //             name: "linking wasm",
   //             success: true,
   //             console: ""
   //         }
