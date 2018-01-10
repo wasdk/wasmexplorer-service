@@ -7,7 +7,7 @@
 function get_clang_options($options) {
   global $app_root_dir;
   $sysroot = $app_root_dir . 'misc/sysroot';
-  $clang_flags = "--target=wasm32-unknown-unknown-wasm --sysroot=$sysroot";
+  $clang_flags = "--target=wasm32-unknown-unknown-wasm --sysroot=$sysroot -fdiagnostics-print-source-range-info";
 
   if (is_null($options)) {
     return $clang_flags;
@@ -16,7 +16,7 @@ function get_clang_options($options) {
   $available_options = array(
     '-O0', '-O1', '-O2', '-O3', '-O4', '-Os', '-fno-exceptions', '-fno-rtti',
     '-ffast-math', '-fno-inline', '-std=c99', '-std=c89', '-std=c++14',
-    '-std=c++1z', '-std=c++11', '-std=c++98');
+    '-std=c++1z', '-std=c++11', '-std=c++98', '-g');
   $safe_options = '-c';
   foreach ($available_options as $o) {
     if (strpos($options, $o) !== false) {
@@ -38,7 +38,7 @@ function get_lld_options($options) {
     return $clang_flags;
   }
 
-  $available_options = array('--import-memory');
+  $available_options = array('--import-memory', '-g');
   $safe_options = '';
   foreach ($available_options as $o) {
     if (strpos($options, $o) !== false) {
