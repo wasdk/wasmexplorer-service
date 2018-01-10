@@ -55,15 +55,10 @@ function base64EncodeBytes(bytes) {
 }
 
 
-function disassembleModule(wast) {
+function disassembleModule(wasm) {
     var o, w;
-    try {
-      w = wasmTextToBinary(wast);
-      var m = new WebAssembly.Module(w);
-      o = wasmExtractCode(m); 
-    } catch (e) {
-      return e.message;
-    }
+    var m = new WebAssembly.Module(wasm);
+    o = wasmExtractCode(m);
     var regions = o.segments.filter(s => s.kind === 0)
       .map(function(fnSegment) {
       var code = o.code.subarray(fnSegment.funcBodyBegin, fnSegment.funcBodyEnd);
@@ -77,9 +72,20 @@ function disassembleModule(wast) {
     return {
       begin: {low: 0, high: 0}, 
       regions: regions, 
-      wasm: base64EncodeBytes(w)
+      wasm: base64EncodeBytes(wasm)
     };
 }
 
-var wast = read(scriptArgs[0]);
-putstr(JSON.stringify(disassembleModule(wast)));
+var inputFile = scriptArgs[0];
+try {
+  var wasm;
+  if (/\.wast$/i.test(inputFile)) {
+    var wast = read(inputFile);
+    wasm = wasmTextToBinary(wast);
+  } else {
+    wasm = read(inputFile, 'binary');
+  }
+  putstr(JSON.stringify(disassembleModule(wasm)));
+} catch (e) {
+  putstr(JSON.stringify(e.message));
+}

@@ -167,8 +167,9 @@ if ($action == "wasm2wast") {
   exit;
 }
 
-if ($action == "wast2assembly") {
+if ($action == "wast2assembly" || $action == "wasm2assembly") {
   // The query string has format: action=wast2assembly&input=(module...)
+  //                          or: action=wasm2assembly&input=AGFzbQEAAAA....
   // Output: JSON in the following format
   // {
   //      "regions":[
@@ -181,12 +182,17 @@ if ($action == "wast2assembly") {
   //      ],
   //      "wasm":"AGFzbQEAAAA...."
   // }
-  $fileName = $result_file_base . '.wast';
+  if ($action == "wast2assembly") {
+    $fileName = $result_file_base . '.wast';
+    file_put_contents($fileName, $input);
+  } else {
+    $fileName = $result_file_base . '.wasm';
+    file_put_contents($fileName, base64_decode($input));
+  }
   $jit_options = '';
   if (strpos($options, '--wasm-always-baseline') !== false) {
     $jit_options = ' --wasm-always-baseline';
   }
-  file_put_contents($fileName, $input);
   $output = shell_exec($jsshell_path . $jit_options . ' ' .
                        $get_wasm_jit_script_path . ' ' . $fileName);
   echo $sanitize_shell_output($output);
