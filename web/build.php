@@ -48,7 +48,15 @@ function get_lld_options($options) {
   return $clang_flags . $safe_options;
 }
 
-function build_c_file($input, $options, $output, $result_obj) {
+function serialize_file_data($filename, $compress) {
+  $content = file_get_contents($filename);
+  if ($compress) {
+    $content = zlib_encode($content, ZLIB_ENCODING_DEFLATE);
+  }
+  return base64_encode($content);
+}
+
+function build_c_file($input, $options, $output, $compress, $result_obj) {
   global $llvm_wasm_root, $sanitize_shell_output;
   $cmd = $llvm_wasm_root . '/clang ' . get_clang_options($options) . ' ' . $input . ' -o ' . $output;
   $out = shell_exec($cmd . ' 2>&1');
@@ -58,11 +66,11 @@ function build_c_file($input, $options, $output, $result_obj) {
     return false;
   }
   $result_obj->{'success'} = true;
-  $result_obj->{'output'} = base64_encode(file_get_contents($output));
+  $result_obj->{'output'} = serialize_file_data($output, $compress);
   return true;
 }
 
-function build_cpp_file($input, $options, $output, $result_obj) {
+function build_cpp_file($input, $options, $output, $compress, $result_obj) {
   global $llvm_wasm_root, $sanitize_shell_output;
   $cmd = $llvm_wasm_root . '/clang++ ' . get_clang_options($options) . ' ' . $input . ' -o ' . $output;
   $out = shell_exec($cmd . ' 2>&1');
@@ -72,7 +80,7 @@ function build_cpp_file($input, $options, $output, $result_obj) {
     return false;
   }
   $result_obj->{'success'} = true;
-  $result_obj->{'output'} = base64_encode(file_get_contents($output));
+  $result_obj->{'output'} = serialize_file_data($output, $compress);
   return true;
 }
 
@@ -112,6 +120,7 @@ function link_obj_files($obj_files, $options, $has_cpp, $output, $result_obj) {
 function build_project($json, $base) {
   $project = json_decode($json);
   $output = $project->{'output'};
+  $compress = $project->{'compress'};
   file_put_contents($base . '.txt', $json);
 
   $build_result = (object) [ ];
@@ -174,11 +183,11 @@ function build_project($json, $base) {
     ];
     array_push($build_result->{'tasks'}, $result_obj);
     if ($type == 'c') {
-      $success = build_c_file($fileName, $options, $fileName . '.o', $result_obj);
+      $success = build_c_file($fileName, $options, $fileName . '.o', $compress, $result_obj);
       array_push($obj_files, $fileName . '.o');
     } elseif ($type == 'cpp') {
       $clang_cpp = true;
-      $success = build_cpp_file($fileName, $options, $fileName . '.o', $result_obj);
+      $success = build_cpp_file($fileName, $options, $fileName . '.o', $compress, $result_obj);
       array_push($obj_files, $fileName . '.o');
     }
 
@@ -196,7 +205,7 @@ function build_project($json, $base) {
     return $complete(false, 'Error during linking');
   }
   
-  $build_result->{'output'} = base64_encode(file_get_contents($result));
+  $build_result->{'output'} = serialize_file_data($result, $compress);
   return $complete(true, 'Success');
 }
 
