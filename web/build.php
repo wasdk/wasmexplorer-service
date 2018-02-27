@@ -32,7 +32,7 @@ function get_clang_options($options) {
 function get_lld_options($options) {
   global $app_root_dir;
   $sysroot = $app_root_dir . 'misc/sysroot';
-  $clang_flags = "--target=wasm32-unknown-unknown-wasm --sysroot=$sysroot -nostartfiles $sysroot/lib/wasmception.wasm -D__WASM32__ -Wl,--allow-undefined -Wl,--strip-debug";
+  $clang_flags = "--target=wasm32-unknown-unknown-wasm --sysroot=$sysroot -nostartfiles $sysroot/lib/wasmception.wasm -D__WASM32__ -Wl,--allow-undefined";
 
   if (is_null($options)) {
     return $clang_flags;
