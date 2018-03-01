@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 include 'config.php';
 include 'sanitize_out.php';
 include 'build.php';
+include 'zip.lib.php';
 
 // External scripts paths.
 $scripts_path = $app_root_dir . 'scripts/';
@@ -218,6 +219,38 @@ if ($action == "wast2wasm") {
   echo base64_encode($wasm);
   $cleanup();
   exit;
+}
+
+if ($action == 'download') {
+  //create the zip
+  $zip = new zipfile();
+  // Input: JSON in the following format
+  // {
+  //   "fiddle": "jfmxd",
+  //   "files": [
+  //     {
+  //       "name": "main.c",
+  //       "src": "puts(\"hi\")"
+  //     }
+  //   ]
+  // }
+  $filename = "download.zip";
+  $obj = json_decode($input);
+  // if fiddle code is provided, then name the zip accordingly
+  if(isset($obj->{'fiddle'})){
+    $filename = $obj->{'fiddle'}.".zip";
+  }
+  $files = $obj->{'files'};
+  foreach ($files as $file) {
+    //add files to the zip, passing file contents, not actual files
+    $zip->addFile($file->{'src'}, $file->{'name'});
+    //prepare the headers
+    header("Content-type: application/octet-stream");
+    header("Content-Disposition: attachment; filename=$filename");
+    header("Content-Description: Files of WasmFiddle");
+  }
+  //get the zip content and send it back to the browser
+  echo $zip->file();	
 }
 
 $cleanup();
