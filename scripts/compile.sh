@@ -26,7 +26,7 @@ fi
 $JSSHELL "$approot/scripts/fix-sfile.js" "$sfile~" > "$sfile"
 rm "$sfile~"
 
-$BYNARYEN_ROOT/s2wasm "$sfile" > "$wastfile"
+$BYNARYEN_ROOT/s2wasm "$sfile" -s 524288  > "$wastfile"
 if [ $? != 0 ];then
   exit 3
 fi
